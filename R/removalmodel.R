@@ -1,4 +1,7 @@
-setwd("~/Documents/Employment/ECCC/Robinson_2017-18/BRobinsonContract/data")
+#setwd("E:/ECCC/data")
+setwd("~/Documents/ECCC/data")
+library(detect)
+library(plyr)
 #Load count data
 counts <- read.csv("VESP_counts.csv")
 names(counts)
@@ -28,20 +31,24 @@ fullmatrix$Int9[is.na(fullmatrix$Interval9)] <- NA
 fullmatrix$Int10[is.na(fullmatrix$Interval10)] <- NA
 counts <- fullmatrix[,c(1:13)]
 Y <- as.matrix(counts[,c(3:12)])
-X <- as.matrix(design)
-m1 <- cmulti(Y | X ~ 1, type="rem")
-coef(m1)
-summary(m1)
+
 #Adding covariates to model
 covars <- read.csv("spp_data.csv")
 covars <- covars[covars$PKEY%in%counts$PKEY,]
-covars <- covars[,c(-1,-14,-15,-18,-19,-20)]
+covars <- covars[,c(2,28,29,30)]
 covars <- unique(covars)
+#relink count data with point counts that we have TSSR data fro
+counts <- counts[counts$PKEY%in%covars$PKEY,]
+#
 Y <- as.matrix(counts[,c(3:12)])
 fullmatrix <- fullmatrix[fullmatrix$PKEY%in%counts$PKEY,]
 design <- fullmatrix[,c(15:24)]
 D <- as.matrix(design)
 TSSR <- covars$TSSR
+##models
+m1 <- cmulti(Y | D ~ 1, type="rem")
+coef(m1)
+summary(m1)
 #TSSR model
 m2 <- cmulti(Y | D ~ TSSR, type="rem")
 summary(m2)
@@ -54,3 +61,5 @@ summary(m4)
 m5 <- cmulti(Y | D ~ TSSR*JDAY, type="rem")
 summary(m5)
 bic=BIC(m1,m2,m3,m4,m5)
+bic
+exp(m3$coef)

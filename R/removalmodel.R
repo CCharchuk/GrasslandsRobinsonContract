@@ -1,9 +1,9 @@
 #setwd("E:/ECCC/data")
-setwd("~/Documents/ECCC/data")
+setwd("~/Documents/Employment/ECCC/Robinson_2017-18/BRobinsonContract/ECCC_2/data")
 library(detect)
 library(plyr)
 #Load count data
-counts <- read.csv("VESP_counts.csv")
+counts <- read.csv("CCSP_counts.csv")
 names(counts)
 names(counts) <- c("PKEY", "GRASS_SPP", "Int1","Int2","Int3","Int4","Int5","Int6","Int7","Int8","Int9","Int10","DURMETH")
 #Loud design data
@@ -33,11 +33,20 @@ counts <- fullmatrix[,c(1:13)]
 Y <- as.matrix(counts[,c(3:12)])
 
 #Adding covariates to model
-covars <- read.csv("spp_data.csv")
+all_pc <- read.csv("all_pc.csv")
+spp_data <- read.table("CCSP_data.txt", sep=",", header = T)
+#spp_data$SurveyStartTime <- as.POSIXct(spp_data$SurveyStartTime, format = "%Y-%m-%d %H:%M:%S")
+#spp_data$SurveyStartTime <- format(spp_data$SurveyStartTime, "%H:%M:%S")
+covars <- join(spp_data, all_pc, by = "PKEY")
+covars <- covars[,-c(25:42)]
+#Remove NAs
+covars <- covars[!is.na(covars$DateTime),]
+#Include only those covars where we have multiple time bin counts
 covars <- covars[covars$PKEY%in%counts$PKEY,]
-covars <- covars[,c(2,28,29,30)]
+covars <- covars[,c(1,27,28,29)]
 covars <- unique(covars)
-#relink count data with point counts that we have TSSR data fro
+
+#relink count data with point counts that we have TSSR data for
 counts <- counts[counts$PKEY%in%covars$PKEY,]
 #
 Y <- as.matrix(counts[,c(3:12)])
@@ -61,5 +70,8 @@ summary(m4)
 m5 <- cmulti(Y | D ~ TSSR*JDAY, type="rem")
 summary(m5)
 bic=BIC(m1,m2,m3,m4,m5)
-bic
-exp(m3$coef)
+bestmodel <- bic[bic$BIC==min(bic$BIC),]
+rownames(bestmodel)
+#Change the model in t(m$coef) to the best model
+ccsp_rem_coef <- as.data.frame(t(m5$coef))
+save(ccsp_rem_coef, file="ccsp_remcoef.rda")

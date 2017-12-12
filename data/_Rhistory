@@ -1,0 +1,166 @@
+install.packages("mefa")
+library(mefa)
+#Expected count E[Y] at a given point count is the objective
+#Equal to N p(tj)q(rk) where N is counted abundance, p is probability of singing given removal model, q is probability of detection given distance sampling
+#Equal to D A p(tj)q(rk) where D is density given known area sampled A or estimated from EDR.
+#q and p are estimable, A = pi r2k or effective area sampled can be estimated
+install.packages("devtools")
+library(devtools)
+install.packages("devtools")
+install_github("psolymos/QPAD")
+#Expected count E[Y] at a given point count is the objective
+#Equal to N p(tj)q(rk) where N is counted abundance, p is probability of singing given removal model, q is probability of detection given distance sampling
+#Equal to D A p(tj)q(rk) where D is density given known area sampled A or estimated from EDR.
+#q and p are estimable, A = pi r2k or effective area sampled can be estimated
+install.packages("devtools")
+q()
+#distance sampling model
+#distance r
+#g(r) = exp(-r^2/tau^2)
+#tau^2 is the variance of the unfolded normal distribution describing the rate of distance decay
+#assume r is measured without error and detection perfect at r=0
+#tau = EDR for unlimited distance counts
+# use subset with >= 2 distance intervals
+#Standard practice is to model density as a function of tree cover, as this does not apply in grasslands
+#we are going to use the null model of detection decay over distance.
+library(detect)
+#setwd("~/Documents/Employment/ECCC/Robinson_2017-18/BRobinsonContract/data")
+setwd("E:/ECCC/data")
+distcount <- read.csv("distcountmatrix.csv")
+spp <- unique(distcount$GRASS_SPP)
+distdesign <- read.csv("distancedesign.csv")
+distdesign <- read.table("DistanceQuery2.txt")
+names(distdesign) <- c("PKEY","SumOfABUNDANCE","BehaviourID","GRASS_SPP","DistanceID","DISTMETH","DIST_END","Int1","Int2","Int3")
+str(distdesign)
+#distdesign2 <- read.csv("distancespp.csv")
+#distdesign3 <- plyr::join(distdesign2, distdesign, by = c("DISTMETH"))
+#distdesign3 <- distdesign3[distdesign3$PKEY%in%distcount$PKEY,]
+#remove behaviour codes for non-singing indvs
+table(distcount$BehaviourID)
+distcount <- distcount[!distcount$BehaviourID=="2",]
+distcount <- distcount[!distcount$BehaviourID=="4",]
+distcount <- distcount[!distcount$BehaviourID=="5",]
+#distdesign3 <- distdesign3[,c(1,6:9)]
+#distdesign3 <- unique(distdesign3)
+sppc <- distcount[distcount$GRASS_SPP=="VESP",]
+sppd <- distdesign[distdesign$PKEY%in%sppc$PKEY,]
+sppd <- sppd[sppd$GRASS_SPP%in%sppc$GRASS_SPP,]
+sppd <- unique(sppd[,c(1,6,8:10)])
+#include continuous distance pc
+sppcontdist <- read.csv("ContDist.csv")
+sppcont <- sppcontdist[sppcontdist$GRASS_SPP=="VESP",]
+#sppd <- distdesign3[distdesign3$PKEY%in%sppc$PKEY,]
+#remove sampling designs that don't have distance intervals
+#Remove DISTMETH D, F, O, X. Treat Z differently as cont dist
+sppd <- sppd[!sppd$DISTMETH=="D",]
+sppd <- sppd[!sppd$DISTMETH=="F",]
+sppd <- sppd[!sppd$DISTMETH=="O",]
+sppd <- sppd[!sppd$DISTMETH=="X",]
+sppc <- sppc[sppc$PKEY%in%sppd$PKEY,]
+#link up NAs
+fullmatrix <- plyr::join(sppd, sppc, by = "PKEY")
+fullmatrix$MaxOfInterval1[is.na(fullmatrix$Int1)] <- NA
+fullmatrix$MaxOfInterval2[is.na(fullmatrix$Int2)] <- NA
+fullmatrix$MaxOfInterval3[is.na(fullmatrix$Int3)] <- NA
+str(fullmatrix)
+#extract counts and distance bins
+sppcounts <- as.matrix(fullmatrix[,8:10])
+sppdesign <- as.matrix(fullmatrix[,3:5])
+m1 <- cmulti(sppcounts | sppdesign ~ 1, type="dis")
+coef(m1)
+exp(coef(m1))
+setwd("E:/ECCC/data")
+library(detect)
+library(plyr)
+#Load count data
+counts <- read.csv("VESP_counts.csv")
+names(counts)
+names(counts) <- c("PKEY", "GRASS_SPP", "Int1","Int2","Int3","Int4","Int5","Int6","Int7","Int8","Int9","Int10","DURMETH")
+#Loud design data
+design <- read.csv("removaldesign.csv")
+design$DURMETH <- design$DURATIONCODE
+design$DURATIONCODE <- NULL
+#Join data based on DURMETH
+fullmatrix <- plyr::join(counts, design, by = "DURMETH")
+#Subset data that has >=2 intervals
+#Remove DURMETH A B D E J T AA Ya II
+table(fullmatrix$DURMETH)
+fullmatrix <- fullmatrix[!fullmatrix$DURMETH%in%c("A", "B", "D", "E", "J", "T", "AA", "Ya", "II"),]
+fullmatrix$DURMETH <- factor(fullmatrix$DURMETH)
+design <- fullmatrix[,c(15:24)]
+#change 0 to NA
+fullmatrix$Int1[is.na(fullmatrix$Interval1)] <- NA
+fullmatrix$Int2[is.na(fullmatrix$Interval2)] <- NA
+fullmatrix$Int3[is.na(fullmatrix$Interval3)] <- NA
+fullmatrix$Int4[is.na(fullmatrix$Interval4)] <- NA
+fullmatrix$Int5[is.na(fullmatrix$Interval5)] <- NA
+fullmatrix$Int6[is.na(fullmatrix$Interval6)] <- NA
+fullmatrix$Int7[is.na(fullmatrix$Interval7)] <- NA
+fullmatrix$Int8[is.na(fullmatrix$Interval8)] <- NA
+fullmatrix$Int9[is.na(fullmatrix$Interval9)] <- NA
+fullmatrix$Int10[is.na(fullmatrix$Interval10)] <- NA
+counts <- fullmatrix[,c(1:13)]
+Y <- as.matrix(counts[,c(3:12)])
+#Adding covariates to model
+covars <- read.csv("spp_data.csv")
+covars <- covars[covars$PKEY%in%counts$PKEY,]
+covars <- covars[,c(2,28,29,30)]
+covars <- unique(covars)
+#relink count data with point counts that we have TSSR data fro
+counts <- counts[counts$PKEY%in%covars$PKEY,]
+#
+Y <- as.matrix(counts[,c(3:12)])
+fullmatrix <- fullmatrix[fullmatrix$PKEY%in%counts$PKEY,]
+design <- fullmatrix[,c(15:24)]
+D <- as.matrix(design)
+TSSR <- covars$TSSR
+##models
+m1 <- cmulti(Y | D ~ 1, type="rem")
+coef(m1)
+summary(m1)
+#TSSR model
+m2 <- cmulti(Y | D ~ TSSR, type="rem")
+summary(m2)
+#JDAY model
+JDAY <- covars$JDAY
+m3 <- cmulti(Y | D ~ JDAY, type="rem")
+summary(m3)
+m4 <- cmulti(Y | D ~ TSSR + JDAY, type="rem")
+summary(m4)
+m5 <- cmulti(Y | D ~ TSSR*JDAY, type="rem")
+summary(m5)
+bic=BIC(m1,m2,m3,m4,m5)
+bic
+exp(m3$coef)
+#Expected count E[Y] at a given point count is the objective
+#Equal to N p(tj)q(rk) where N is counted abundance, p is probability of singing given removal model, q is probability of detection given distance sampling
+#Equal to D A p(tj)q(rk) where D is density given known area sampled A or estimated from EDR.
+#q and p are estimable, A = pi r2k or effective area sampled can be estimated
+sra <- m3$coef
+#Expected count E[Y] at a given point count is the objective
+#Equal to N p(tj)q(rk) where N is counted abundance, p is probability of singing given removal model, q is probability of detection given distance sampling
+#Equal to D A p(tj)q(rk) where D is density given known area sampled A or estimated from EDR.
+#q and p are estimable, A = pi r2k or effective area sampled can be estimated
+sra <- m3$coef[1]
+#Expected count E[Y] at a given point count is the objective
+#Equal to N p(tj)q(rk) where N is counted abundance, p is probability of singing given removal model, q is probability of detection given distance sampling
+#Equal to D A p(tj)q(rk) where D is density given known area sampled A or estimated from EDR.
+#q and p are estimable, A = pi r2k or effective area sampled can be estimated
+sra_int <- m3$coef[1]
+View(m2)
+View(m3)
+sra_jday <- m3$coef[2]
+dm1 <- cmulti(sppcounts | sppdesign ~ 1, type="dis")
+coef(dm1)
+exp(coef(dm1))
+tau <- dm1$coef
+View(distcount)
+View(distdesign)
+fulldata <- read.csv("spp_data.csv")
+View(fulldata)
+table(fulldata$SPPCODE)
+fulldata$tau <- tau
+fulldata$sraint <- sra_int
+fulldata$srajday < -sra_jday
+fulldata$srajday < sra_jday
+fulldata$srajday <- sra_jday

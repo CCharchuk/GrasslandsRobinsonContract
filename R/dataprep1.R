@@ -1,4 +1,4 @@
-#Calculate time since local sunrise (TSSR) for each PC
+#Calculate time since local sunrise (TSSR) for each PC containing species of interest
 library(maptools)
 ?sunriset
 #read in single species PC data

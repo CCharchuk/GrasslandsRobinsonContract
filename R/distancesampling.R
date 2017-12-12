@@ -10,7 +10,7 @@
 library(detect)
 
 #set working directory 
-setwd("~/Documents/ECCC/data")
+setwd("~/Documents/Employment/ECCC/Robinson_2017-18/BRobinsonContract/ECCC_2/data")
 distcount <- read.csv("distcountmatrix.csv")
 spp <- unique(distcount$GRASS_SPP)
 #distdesign <- read.csv("distancedesign.csv")
@@ -30,13 +30,14 @@ distcount <- distcount[!distcount$BehaviourID=="5",]
 #distdesign3 <- distdesign3[,c(1,6:9)]
 #distdesign3 <- unique(distdesign3)
 
-sppc <- distcount[distcount$GRASS_SPP=="VESP",]
+sppc <- distcount[distcount$GRASS_SPP=="GRSP",]
 sppd <- distdesign[distdesign$PKEY%in%sppc$PKEY,]
 sppd <- sppd[sppd$GRASS_SPP%in%sppc$GRASS_SPP,]
 sppd <- unique(sppd[,c(1,6,8:10)])
 #include continuous distance pc
-sppcontdist <- read.csv("ContDist.csv")
-sppcont <- sppcontdist[sppcontdist$GRASS_SPP=="VESP",]
+#sppcontdist <- read.csv("ContDist.csv")
+#sppcont <- sppcontdist[sppcontdist$GRASS_SPP=="VESP",]
+
 #sppd <- distdesign3[distdesign3$PKEY%in%sppc$PKEY,]
 #remove sampling designs that don't have distance intervals
 #Remove DISTMETH D, F, O, X. Treat Z differently as cont dist
@@ -59,5 +60,5 @@ sppcounts <- as.matrix(fullmatrix[,8:10])
 sppdesign <- as.matrix(fullmatrix[,3:5])
 
 dm1 <- cmulti(sppcounts | sppdesign ~ 1, type="dis")
-coef(dm1)
-exp(coef(dm1))
+dist_coef <- as.data.frame(t(coef(dm1)))
+save(dist_coef, file="grsp_distcoef.rda")

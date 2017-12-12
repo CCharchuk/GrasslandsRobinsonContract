@@ -3,7 +3,7 @@ setwd("~/Documents/Employment/ECCC/Robinson_2017-18/BRobinsonContract/ECCC_2/dat
 library(detect)
 library(plyr)
 #Load count data
-counts <- read.csv("CCSP_counts.csv")
+counts <- read.csv("GRSP_counts.csv")
 names(counts)
 names(counts) <- c("PKEY", "GRASS_SPP", "Int1","Int2","Int3","Int4","Int5","Int6","Int7","Int8","Int9","Int10","DURMETH")
 #Loud design data
@@ -73,5 +73,5 @@ bic=BIC(m1,m2,m3,m4,m5)
 bestmodel <- bic[bic$BIC==min(bic$BIC),]
 rownames(bestmodel)
 #Change the model in t(m$coef) to the best model
-ccsp_rem_coef <- as.data.frame(t(m5$coef))
-save(ccsp_rem_coef, file="ccsp_remcoef.rda")
+rem_coef <- as.data.frame(t(m1$coef))
+save(rem_coef, file="grsp_remcoef.rda")

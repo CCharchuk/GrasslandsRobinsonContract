@@ -1,7 +1,7 @@
 install.packages("mefa4")
 setwd("~/Documents/Employment/ECCC/Robinson_2017-18/BRobinsonContract/ECCC_2/data")
-load("remcoef.rda")
-load("ccsp_distcoef.rda")
+load("grsp_remcoef.rda")
+load("grsp_distcoef.rda")
 
 dist_endpoints <- read.csv("Dist_Endpoints.csv")
 #qpad approach to estimating density
@@ -26,11 +26,11 @@ summary(all_pc$MaxOfDIST_END)
 all_pc <- all_pc[!is.na(all_pc$MaxOfDIST_END),]
 #species specific data
 pcdat <- read.csv("spp_data.csv")
-pcdat$logtau <- dist_coef$`log.tau_(Intercept)`
-pcdat$tau <- exp(pcdat$logtau)
-pcdat$sraint <- rem_coef$`log.phi_(Intercept)`
-pcdat$srajday <- rem_coef$log.phi_JDAY
-pcdat <- unique(pcdat[,c(2,13,16,28:29,31:34)])
+pcdat <- unique(pcdat[,c(2,13,16,28:29)])
+#pcdat$logtau <- dist_coef$`log.tau_(Intercept)`
+#pcdat$tau <- exp(pcdat$logtau)
+#pcdat$sraint <- rem_coef$`log.phi_(Intercept)`
+#pcdat$srajday <- rem_coef$log.phi_JDAY
 #A <- ifelse(maxdist=unlimited, pitau^2, pi %*% maxdist^2)
 #q <- ifelse(maxdist=unlimited, 1, tau)
 distdesign <- read.table("DistanceQuery2.txt")
@@ -53,14 +53,14 @@ aggdata <- unique(aggdata)
 #Need to append with full point count list
 aggdatafull <- plyr::join(all_pc, aggdata, by = "PKEY")
 aggdatafull$N[is.na(aggdatafull$N)] <- 0
-aggdatafull <- aggdatafull[,c(1:5,10:12, 40:43, 45, 50:53)]
+aggdatafull <- aggdatafull[,c(1:5,10:12, 40:43, 45)]
 aggdatafull <- unique(aggdatafull)
-aggdatafull$logtau <- ccsp_dist_coef$`log.tau_(Intercept)`
+aggdatafull$logtau <- dist_coef$`log.tau_(Intercept)`
 aggdatafull$tau <- exp(aggdatafull$logtau)
-aggdatafull$sraint <- ccsp_rem_coef$`log.phi_(Intercept)`
-aggdatafull$srajday <- ccsp_rem_coef$log.phi_JDAY
-aggdatafull$sratssr <- ccsp_rem_coef$log.phi_TSSR
-aggdatafull$sratssrjday <- ccsp_rem_coef$`log.phi_TSSR:JDAY`
+aggdatafull$sraint <- rem_coef$`log.phi_(Intercept)`
+aggdatafull$srajday <- rem_coef$log.phi_JDAY
+aggdatafull$sratssr <- rem_coef$log.phi_TSSR
+aggdatafull$sratssrjday <- rem_coef$`log.phi_TSSR:JDAY`
 
 
 #Calculate area
@@ -73,9 +73,17 @@ duration <- duration[,c(1,13)]
 names(duration) <- c("DURMETH","MAXDUR")
 aggdatafull <- plyr::join(aggdatafull,duration)
 #phi and p calculations
-phi <- exp(aggdatafull$sraint + (aggdatafull$srajday*aggdatafull$JDAY) + (aggdatafull$sratssr*aggdatafull$TSSR) + (aggdatafull$sratssrjday*aggdatafull$TSSR*aggdatafull$JDAY))
+#Use the equation in the line corresponding with the removal model for that species
+#model 1 phi <- exp(aggdatafull$sraint)
+#model 5 phi <- exp(aggdatafull$sraint + (aggdatafull$srajday*aggdatafull$JDAY) + (aggdatafull$sratssr*aggdatafull$TSSR) + (aggdatafull$sratssrjday*aggdatafull$TSSR*aggdatafull$JDAY))
 
 aggdatafull$p <- 1-exp(-(aggdatafull$MAXDUR*phi))
 
-aggdatafull$offset <- log(aggdatafull$A) + log(aggdatafull$p) + log(aggdatafull$q)
-save(aggdatafull, file="CCSPoffsets.rda")
+#fn for calculating offset:
+qpadoffset <- function(a,b,c){
+  log(a) + log(b) + log(c)
+}
+
+aggdatafull$offset <- qpadoffset(aggdatafull$A, aggdatafull$p, aggdatafull$q)
+
+save(aggdatafull, file="GRSPoffsets.rda")
